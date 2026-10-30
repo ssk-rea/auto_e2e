@@ -89,6 +89,13 @@ Every 0.1 s of simulated time (`control_timestep_us`), AlpaSim calls `AutoE2EDri
 
    `<log_dir>/aggregate/` holds AlpaSim's own metrics summary.
 
+   The [walkthrough](walkthrough.ipynb) visualises all of this (part 6):
+   - AlpaSim's own video
+   - bird's-eye views on the scene's vector map
+   - the ego against the recording
+   - the infractions, step by step
+   - the camera frames the driver received
+
 Each decision recomputes the bird's-eye view of all eight frames, so the loop waits for the driver and runs far slower than real time. The numbers measured on this setup are in §8.
 
 ## 6. The phase-1 reward
@@ -103,13 +110,16 @@ R_bound = −10 and truncated = True     once the ego itself is more than 3 m fr
 
 - **The bound is a property of the renderer**, not a driving preference. Beyond about 3 m the reconstruction is under-sampled, so the bound acts on where the cameras are, not on where the plan ends.
 - **It also prevents a stopped ego.** If the ego stops, the recording keeps moving: ADE and FDE grow, and the bound soon fires.
-- **Truncation is only reported.** AlpaSim keeps driving to the end of the scene. Ending the episode will be the RL environment's job. AlpaSim's own evaluation applies a separate cutoff: it stops counting once the ego is 4 m from the recorded trajectory.
+- **Truncation is only reported.** AlpaSim keeps driving to the end of the scene. Ending the episode will be the RL environment's job.
+- **AlpaSim's summary cuts the timeline.** Its own evaluation (`aggregate/metrics_results.txt`) stops counting at the first off-road or collision, or once the ego is 4 m from the recorded trajectory, whichever comes first. Its summary therefore only describes the rollout up to that point. The per-step values in `metrics.parquet` cover the whole rollout.
 - **Scoring a run:** `tools/score_rollout.py <rollout.asl>` scores a finished rollout, one row per decision.
 
 **Example: the verification run behind §8** (nuPlan Epoch 5, default scene):
 - The first decisions scored about −0.8, with ADE 0.34 m and FDE 0.9 m.
 - The ego passed the 3 m bound at decision 41 of 129 and ended 34 m from the recorded drive, so 89 decisions were truncated.
-- AlpaSim reported no collision or off-road event, and `progress` 0.38.
+- AlpaSim's per-step metrics flag the ego as off-road from 4.1 s to 5.0 s after the takeover. There was no collision.
+- Over the whole rollout the ego drove 57 m against the recording's 74 m (`progress` 0.62).
+- AlpaSim's summary reports `offroad` 0 and `progress` 0.38 instead, because its evaluation stopped at 3.9 s, when the ego reached 4 m from the recording.
 
 ## 7. The fine-tuning loop (planned)
 
