@@ -4,5 +4,6 @@ theme:
 
 nav:
   - Home: index.md
+  - Closed-loop fine-tuning: closed_loop/overview.md
 
 docs_dir: Docs

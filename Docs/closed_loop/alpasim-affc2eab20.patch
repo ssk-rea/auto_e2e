@@ -1,0 +1,57 @@
+diff --git a/.dockerignore b/.dockerignore
+index 971139d..7a848f8 100644
+--- a/.dockerignore
++++ b/.dockerignore
+@@ -19,6 +19,7 @@
+ !src/trafficsim/**
+ !plugins/internal/**
+ !plugins/transfuser_driver/**
++!plugins/alpasim_driver/**
+ !e2e_challenge/
+ !e2e_challenge/starter_kit/
+ !e2e_challenge/starter_kit/**
+diff --git a/Dockerfile b/Dockerfile
+index 4992139..d281761 100644
+--- a/Dockerfile
++++ b/Dockerfile
+@@ -57,7 +57,7 @@ WORKDIR /repo
+ 
+ RUN --mount=type=secret,id=netrc,target=/root/.netrc \
+     --mount=type=cache,target=/root/.cache/uv \
+-    sh -c 'if [ -f /root/.netrc ]; then export NETRC=/root/.netrc; fi && uv sync --extra all --extra recipes'
++    sh -c 'if [ -f /root/.netrc ]; then export NETRC=/root/.netrc; fi && uv sync --extra all --extra recipes --extra autoe2e'
+ 
+ ARG PYTORCH_VERSION=2.8.0+cu128
+ ARG TORCH_CLUSTER_VERSION=1.6.3
+diff --git a/pyproject.toml b/pyproject.toml
+index 3f5231a..8cf413f 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -42,6 +42,7 @@ recipes = ["alpasim_driver[recipes]"]
+ 
+ # -- Plugin extras --
+ transfuser = ["alpasim_transfuser"]
++autoe2e = ["alpasim_autoe2e"]
+ 
+ [tool.uv.workspace]
+ members = [
+@@ -71,6 +72,7 @@ alpasim-physics = { workspace = true }
+ alpasim-tools = { workspace = true }
+ alpasim_driver = { workspace = true }
+ alpasim_transfuser = { workspace = true }
++alpasim_autoe2e = { workspace = true }
+ alpasim_wizard = { workspace = true }
+ trajdata-alpasim = { git = "https://github.com/NVlabs/trajdata", rev = "a0c1310c5fba190c181c6fb4f00c06fc5c77b417" }
+ alpasim-trafficsim = { workspace = true }
+diff --git a/setup_local_env.sh b/setup_local_env.sh
+index bf31677..e76f7e2 100755
+--- a/setup_local_env.sh
++++ b/setup_local_env.sh
+@@ -85,6 +85,7 @@ EXTRAS=("--extra" "all")
+ declare -A PLUGIN_EXTRAS=(
+     ["plugins/internal"]="internal"
+     ["plugins/transfuser_driver"]="transfuser"
++    ["plugins/alpasim_driver"]="autoe2e"
+ )
+ 
+ echo "Detecting available plugins..."
