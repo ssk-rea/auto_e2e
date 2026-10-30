@@ -70,9 +70,19 @@ rm -rf "$ALPASIM_ROOT/plugins/alpasim_driver"
 cp -r Model/plugins/alpasim_driver "$ALPASIM_ROOT/plugins/"
 ```
 
-Next, add `autoe2e = ["alpasim_autoe2e"]` to the plugin extras in `$ALPASIM_ROOT/pyproject.toml`, and `--extra autoe2e` to the `uv sync` line of its `Dockerfile`. Then build the image and run:
+Next, register the plugin in the AlpaSim checkout. The plugin needs AlpaSim's `ModelPrediction.from_planar` API (AlpaSim `68709245a5` or later, Python 3.12). These are the edits for AlpaSim `affc2eab20`:
+
+- `pyproject.toml`: add `autoe2e = ["alpasim_autoe2e"]` to the plugin extras and `alpasim_autoe2e = { workspace = true }` to `[tool.uv.sources]`. Without the source entry, uv rejects the workspace member.
+- `.dockerignore`: add `!plugins/alpasim_driver/**`. The file excludes everything it does not re-include, so without it the image has no plugin.
+- `Dockerfile`: add `--extra autoe2e` to the `uv sync` line.
+- `setup_local_env.sh`: add `["plugins/alpasim_driver"]="autoe2e"` to `PLUGIN_EXTRAS`, so the host environment installs the plugin as well.
+
+After `source setup_local_env.sh`, `AUTOE2E_MODEL_ROOT=/path/to/auto_e2e/Model uv run alpasim-info` lists `autoe2e` under Models and Configs. Without `AUTOE2E_MODEL_ROOT`, AlpaSim only logs a warning and leaves the model out of the list.
+
+The wizard downloads the scene from the gated Hugging Face dataset `nvidia/PhysicalAI-Autonomous-Vehicles-NuRec`. Accept its license with the account of your `HF_TOKEN` first; reading the dataset's README succeeds without it, the scene download does not. Then build the image and run:
 
 ```bash
+cd "$ALPASIM_ROOT" && docker build -t alpasim-base:latest .
 cd "$ALPASIM_ROOT" && uv run --project src/wizard alpasim_wizard \
     deploy=local topology=1gpu driver=autoe2e_nuplan \
     driver.model.checkpoint_path=/mnt/drivers/autoe2e/checkpoint.pt \
